@@ -5,9 +5,9 @@ set(CMAKE_CXX_STANDARD 11)
  
 #For the shared library:
 set ( PROJECT_LINK_LIBS libpipert.so )
-link_directories(../build_release) 
+link_directories(./pipert/build) 
  
-include_directories(../include; ./yolo)
+include_directories(./pipert/include; ./yolo)
 
 find_package(OpenCV REQUIRED)
 
