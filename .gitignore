@@ -25,8 +25,10 @@ CMakeFiles/main_yolo.dir/link.txt
 CMakeFiles/main_yolo.dir/main_yolo.cpp.o
 CMakeFiles/main_yolo.dir/progress.make
 cmake_install.cmake
-CMakeLists.txt
+CMakeCache.txt
 emptylog.txt
 main_yolo
 Makefile
 pipert*/
+test.mp4
+.vscode*/
