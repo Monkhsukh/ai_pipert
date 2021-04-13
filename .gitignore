@@ -32,3 +32,6 @@ Makefile
 pipert*/
 test.mp4
 .vscode*/
+CMakeFiles*/
+log_analyzer*/
+profilerlog.txt
