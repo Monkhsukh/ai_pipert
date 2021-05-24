@@ -35,3 +35,9 @@ test.mp4
 CMakeFiles*/
 log_analyzer*/
 profilerlog.txt
+utils/hung.o
+utils/main.o
+utils/test
+main
+main2
+main_fast

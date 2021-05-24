@@ -1,4 +1,4 @@
-AI using Pipert real-time video processing
+Real-time object detection from video using AI
 
 What is Pipert : Real-Time meets High-Delay: A hybrid scheduling and dataflow framework for DSP applications, developed at ELTE University, Budapest.
 

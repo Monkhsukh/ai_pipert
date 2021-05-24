@@ -26,7 +26,7 @@ Yolo::Yolo(String configuration, String model, String classesFile)
     net = readNetFromDarknet(configuration, model);
 }
 
-Mat Yolo::detect(Mat frame)
+frame_with_boxes *Yolo::detect(Mat frame)
 {
     Mat blob;
     // convert image to blob
@@ -36,7 +36,7 @@ Mat Yolo::detect(Mat frame)
     vector<Mat> outs;
     net.forward(outs, getOutputsNames(net));
 
-    remove_box(frame, outs);
+    vector<Rect> boxes = remove_box(frame, outs);
 
     vector<double> layersTimes;
     double freq = getTickFrequency() / 1000;
@@ -45,10 +45,15 @@ Mat Yolo::detect(Mat frame)
     putText(frame, label, Point(0, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255));
     Mat detectedFrame;
     frame.convertTo(detectedFrame, CV_8U);
-    return frame;
+
+    frame_with_boxes *result = new frame_with_boxes();
+    result->frame = frame;
+    result->boxes = boxes;
+
+    return result;
 }
 
-void Yolo::remove_box(Mat &frame, const vector<Mat> &outs)
+vector<Rect> Yolo::remove_box(Mat &frame, const vector<Mat> &outs)
 {
     vector<int> classIds;
     vector<float> confidences;
@@ -86,17 +91,20 @@ void Yolo::remove_box(Mat &frame, const vector<Mat> &outs)
     // Perform non maximum suppression to eliminate redundant overlapping boxes with
     // lower confidences
     vector<int> indices;
+    vector<Rect> ret_boxes = vector<Rect>();
     NMSBoxes(boxes, confidences, conf_threshold, nms, indices);
     for (size_t i = 0; i < indices.size(); ++i)
     {
         int idx = indices[i];
 
-        // cout << indices.size() << endl;
-
         Rect box = boxes[idx];
         draw_box(classIds[idx], confidences[idx], box.x, box.y,
                  box.x + box.width, box.y + box.height, frame);
+
+        ret_boxes.push_back(box);
     }
+
+    return ret_boxes;
 }
 
 // Draw the predicted bounding box
@@ -107,11 +115,9 @@ void Yolo::draw_box(int classId, float conf, int left, int top, int right, int b
 
     //Get the label for the class name and its confidence
     string label = format("%.2f", conf);
-    if (!classes.empty())
-    {
-        CV_Assert(classId < (int)classes.size());
-        label = classes[classId] + ":" + label;
-    }
+
+    CV_Assert(classId < (int)classes.size());
+    label = classes[classId] + ":" + label;
 
     //Display the label at the top of the bounding box
     int baseLine;
@@ -125,18 +131,16 @@ void Yolo::draw_box(int classId, float conf, int left, int top, int right, int b
 vector<String> Yolo::getOutputsNames(const Net &net)
 {
     static vector<String> names;
-    if (names.empty())
-    {
-        //Get the indices of the output layers, i.e. the layers with unconnected outputs
-        vector<int> outLayers = net.getUnconnectedOutLayers();
+    //Get the indices of the output layers, i.e. the layers with unconnected outputs
+    vector<int> outLayers = net.getUnconnectedOutLayers();
 
-        //get the names of all the layers in the network
-        vector<String> layersNames = net.getLayerNames();
+    //get the names of all the layers in the network
+    vector<String> layersNames = net.getLayerNames();
 
-        // Get the names of the output layers in names
-        names.resize(outLayers.size());
-        for (size_t i = 0; i < outLayers.size(); ++i)
-            names[i] = layersNames[outLayers[i] - 1];
-    }
+    // Get the names of the output layers in names
+    names.resize(outLayers.size());
+    for (size_t i = 0; i < outLayers.size(); ++i)
+        names[i] = layersNames[outLayers[i] - 1];
+
     return names;
 }

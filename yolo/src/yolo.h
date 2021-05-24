@@ -1,6 +1,6 @@
-#include <fstream>
-#include <sstream>
-#include <iostream>
+// #include <fstream>
+// #include <sstream>
+// #include <iostream>
 
 // Required for dnn modules.
 #include <opencv2/dnn.hpp>
@@ -13,6 +13,12 @@ using namespace cv;
 using namespace dnn;
 
 #pragma once
+
+struct frame_with_boxes
+{
+    Mat frame;
+    vector<Rect> boxes;
+};
 
 class Yolo
 {
@@ -34,7 +40,7 @@ public:
     Yolo(String configuration, String model, String classesFile);
 
     // remove unnecessary bounding boxes
-    void remove_box(Mat &frame, const vector<Mat> &out);
+    vector<Rect> remove_box(Mat &frame, const vector<Mat> &out);
 
     // draw bounding boxes
     void draw_box(int classId, float conf, int left, int top, int right, int bottom, Mat &frame);
@@ -42,5 +48,5 @@ public:
     // get output layers
     vector<String> getOutputsNames(const Net &net);
 
-    Mat detect(Mat frame);
+    frame_with_boxes *detect(Mat frame);
 };

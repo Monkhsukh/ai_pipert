@@ -7,11 +7,11 @@ using namespace cv;
 class YoloDetector
 {
 private:
-    pipert::PolledChannel<Mat> *pc_to_write_;
+    pipert::PolledChannel<frame_with_boxes *> *pc_to_write_;
     Yolo yolo;
 
 public:
-    YoloDetector(pipert::PolledChannel<Mat> *pc_to_write, Yolo yolo);
+    YoloDetector(pipert::PolledChannel<frame_with_boxes *> *pc_to_write, Yolo yolo);
     void Detect(pipert::PacketToProcess<Mat> p);
     Yolo getYolo();
     void setYolo(Yolo);
