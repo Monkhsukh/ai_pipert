@@ -12,7 +12,7 @@ include_directories(./pipert/include; ./yolo/cfg ./yolo/src ./scheduler/src ./ut
 find_package(OpenCV REQUIRED)
 
 add_executable(main_fast main_fast.cpp)
-add_executable(main main.cpp yolo/src/yolo.cpp scheduler/src/YoloDetector.cpp yolo/src/MyKalmanFilter.cpp scheduler/src/KFTracker.cpp utils/HungarianAlgorithm.cpp)
+add_executable(main main.cpp yolo/src/yolo.cpp scheduler/src/YoloDetector.cpp yolo/src/MyKalmanFilter.cpp yolo/src/KalmanTracker.cpp scheduler/src/KFTracker.cpp utils/HungarianAlgorithm.cpp)
 
 target_link_libraries(main_fast ${PROJECT_LINK_LIBS} ${OpenCV_LIBS})
 target_link_libraries(main ${PROJECT_LINK_LIBS} ${OpenCV_LIBS})

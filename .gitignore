@@ -38,6 +38,8 @@ profilerlog.txt
 utils/hung.o
 utils/main.o
 utils/test
+yolo/cfg/yolov3.cfg
+yolo/cfg/yolov3.weights
+yolo/cfg/coco_copy.names
+yolo/cfg/install.txt
 main
-main2
-main_fast
