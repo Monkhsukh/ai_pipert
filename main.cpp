@@ -151,6 +151,8 @@ int main(int argc, char **argv)
             cv::imshow("Display", combine);
         }
 
+        sch.GetProfiler().GatherNSend();
+
         char c = (char)cv::waitKey(25);
         if (c == 27)
             break;
