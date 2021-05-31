@@ -43,16 +43,19 @@ static int CHANNEL_CAPACITY = 10;
 Scheduler sch(0, Profiler(PROFILER_PATH));
 PolledChannel<frame_with_boxes *> *pc_tiny;
 PolledChannel<frame_with_boxes *> *pc;
+PolledChannel<Mat> *pc_kf_tiny;
 PolledChannel<Mat> *pc_kf;
 ScheduledChannel<Mat> *sc_tiny;
 ScheduledChannel<Mat> *sc;
 ScheduledChannel<frame_with_boxes *> *sc_kf;
+ScheduledChannel<frame_with_boxes *> *sc_kf_tiny;
 Yolo yolo_tiny(CONFIG_TINY, MODEL_TINY, CLASSESFILE_TINY);
 Yolo yolo(CONFIG, MODEL, CLASSESFILE);
 YoloDetector *yd_tiny;
 YoloDetector *yd;
 
 KFTracker *kft;
+KFTracker *kft_tiny;
 
 void Initialize()
 {
@@ -63,22 +66,26 @@ void Initialize()
     sc_tiny = new ScheduledChannel<Mat>(sch.CreateScheduledChannel<Mat>("DetectorChannel", CHANNEL_CAPACITY, nullptr, bind(&YoloDetector::Detect, yd_tiny, placeholders::_1)));
     sc = new ScheduledChannel<Mat>(sch.CreateScheduledChannel<Mat>("DetectorChannelYolo", CHANNEL_CAPACITY, nullptr, bind(&YoloDetector::Detect, yd, placeholders::_1)));
 
-    pc_kf = new PolledChannel<Mat>(sch.CreatePolledChannel<Mat>("Out", CHANNEL_CAPACITY));
+    pc_kf_tiny = new PolledChannel<Mat>(sch.CreatePolledChannel<Mat>("OutTrackTiny", CHANNEL_CAPACITY));
+    kft_tiny = new KFTracker(pc_kf_tiny);
+    sc_kf_tiny = new ScheduledChannel<frame_with_boxes *>(sch.CreateScheduledChannel<frame_with_boxes *>("TrackTiny", CHANNEL_CAPACITY, nullptr, bind(&KFTracker::Track, kft_tiny, placeholders::_1)));
+
+    pc_kf = new PolledChannel<Mat>(sch.CreatePolledChannel<Mat>("OutTrack", CHANNEL_CAPACITY));
     kft = new KFTracker(pc_kf);
     sc_kf = new ScheduledChannel<frame_with_boxes *>(sch.CreateScheduledChannel<frame_with_boxes *>("Track", CHANNEL_CAPACITY, nullptr, bind(&KFTracker::Track, kft, placeholders::_1)));
 }
 
-int main(int argc, char **argv)
+void RunPipeline(char *argv)
 {
-    Mat frame, row1, row2, combine, result_kf, frame_clone;
+    Mat frame, row1, row2, combine, result_kf, result_kf_tiny, frame_clone;
     frame_with_boxes *result_tiny = nullptr, *result_yolo = nullptr;
-    bool isPushed = false, isPushedYolo = false, isPushedKF = false;
+    bool isPushed = false, isPushedYolo = false, isPushedKF = false, isPushedKFTiny = false;
 
     Initialize();
     sch.Start();
 
     cv::VideoCapture cap;
-    cap.open(argv[1]);
+    cap.open(argv);
     while (true)
     {
         pipert::Timer::Time time = pipert::Timer::time();
@@ -88,21 +95,38 @@ int main(int argc, char **argv)
             break;
         frame.copyTo(frame_clone);
 
-        /// KALMAN FILTER
-        if (!isPushedKF && result_tiny != nullptr)
+        /// KALMAN FILTER TINY
+        if (!isPushedKFTiny && result_tiny != nullptr)
         {
             frame_with_boxes *data = new frame_with_boxes();
             data->boxes = result_tiny->boxes;
+            data->frame = frame.clone();
+            PacketToFill<frame_with_boxes *> packet_to_fill1 = sc_kf_tiny->Acquire(time, data);
+            packet_to_fill1.Push();
+            isPushedKFTiny = true;
+        }
+        PacketToProcess<Mat> packet_to_process_kf_t = pc_kf_tiny->Poll();
+        if (!packet_to_process_kf_t.IsEmpty())
+        {
+            isPushedKFTiny = false;
+            result_kf_tiny = packet_to_process_kf_t.data();
+        }
+
+        /// KALMAN FILTER
+        if (!isPushedKF && result_yolo != nullptr)
+        {
+            frame_with_boxes *data = new frame_with_boxes();
+            data->boxes = result_yolo->boxes;
             data->frame = frame.clone();
             PacketToFill<frame_with_boxes *> packet_to_fill1 = sc_kf->Acquire(time, data);
             packet_to_fill1.Push();
             isPushedKF = true;
         }
-        PacketToProcess<Mat> packet_to_process1 = pc_kf->Poll();
-        if (!packet_to_process1.IsEmpty())
+        PacketToProcess<Mat> packet_to_process_kf = pc_kf->Poll();
+        if (!packet_to_process_kf.IsEmpty())
         {
             isPushedKF = false;
-            result_kf = packet_to_process1.data();
+            result_kf = packet_to_process_kf.data();
         }
 
         /// YOLO TINY
@@ -136,15 +160,16 @@ int main(int argc, char **argv)
         }
 
         /// SHOW VIDEO
-        if (result_tiny != nullptr && result_yolo != nullptr)
+        if (result_tiny != nullptr && result_yolo != nullptr && !result_kf.empty())
         {
-            cv::Mat arr[] = {frame, result_tiny->frame, result_yolo->frame};
+            cv::Mat arr[] = {result_kf_tiny, result_tiny->frame, result_yolo->frame};
             cv::hconcat(arr, 3, row1);
 
             KFTracker::draw_boxes(result_tiny->boxes, frame);
             KFTracker::draw_boxes(result_yolo->boxes, frame_clone);
 
             cv::Mat arr2[] = {result_kf, frame, frame_clone};
+
             cv::hconcat(arr2, 3, row2);
             cv::Mat arr3[] = {row1, row2};
             cv::vconcat(arr3, 2, combine);
@@ -158,4 +183,9 @@ int main(int argc, char **argv)
             break;
     }
     sch.Stop();
+}
+
+int main(int argc, char **argv)
+{
+    RunPipeline(argv[1]);
 }
