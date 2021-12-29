@@ -173,6 +173,8 @@ void RunPipeline(char *argv)
             cv::hconcat(arr2, 3, row2);
             cv::Mat arr3[] = {row1, row2};
             cv::vconcat(arr3, 2, combine);
+            cv:namedWindow("Display", cv::WINDOW_NORMAL);
+            cv::resizeWindow("Display", 1024, 1024); 
             cv::imshow("Display", combine);
         }
 

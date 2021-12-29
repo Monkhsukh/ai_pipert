@@ -114,7 +114,7 @@ void KFTracker::Track(pipert::PacketToProcess<frame_with_boxes *> p)
     // DELETE OLD TRACKS
     for (int i = tracks.size() - 1; i >= 0; i--)
     {
-        if (tracks[i].no_losses > 4)
+        if (tracks[i].no_losses > 10)
             tracks.erase(tracks.begin() + i);
     }
 
